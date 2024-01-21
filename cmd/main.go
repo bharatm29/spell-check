@@ -4,10 +4,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	spellcheck "spell-check/internals/spellCheck"
 )
 
 func main() {
+	if _, err := os.Stat("words_dictionary.json"); err != nil {
+		fmt.Println("Required files not found, downloading...")
+
+		file_link := "https://raw.githubusercontent.com/dwyl/english-words/master/words_dictionary.json"
+		cmd := exec.Command("wget", file_link)
+
+		err := cmd.Run()
+		if err != nil {
+			fmt.Printf("Error downloading word dictionary file: %s\n", err)
+		}
+
+		fmt.Println("Finished downloading necessary files")
+	}
+
 	var word string
 	wordDictonary := getWordDictonary()
 
@@ -27,6 +42,7 @@ func main() {
 	}
 
 	for {
+        fmt.Printf("Enter a word: ")
 		fmt.Scanln(&word)
 
 		_, ok := wordDictonary[word]
