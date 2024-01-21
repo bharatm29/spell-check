@@ -20,9 +20,9 @@ func GetSimilarWords(word string) []string {
 	for dicWord := range wordDictonary {
 		editDist := getEditDistance(word, dicWord)
 
-		if editDist >= 0 && editDist <= 3 {
+		if editDist >= 0 && editDist <= 2 {
 			similarWords = append(similarWords, dicWord)
-            fmt.Println(dicWord)
+			fmt.Println(dicWord)
 		}
 	}
 
@@ -30,10 +30,22 @@ func GetSimilarWords(word string) []string {
 }
 
 func getEditDistance(word string, dicWord string) int {
-	return editDist(len(word), len(dicWord), word, dicWord)
+	m := len(dicWord)
+	n := len(word)
+
+	dp := make([][]int, n+1)
+
+	for idx := range dp {
+		dp[idx] = make([]int, m+1)
+		for j := range dp[idx] {
+			dp[idx][j] = -1
+		}
+	}
+
+	return editDist(n, m, word, dicWord, dp)
 }
 
-func editDist(i int, j int, a string, b string) int {
+func editDist(i int, j int, a string, b string, dp [][]int) int {
 	if i == 0 && j == 0 {
 		return 0
 	}
@@ -46,15 +58,20 @@ func editDist(i int, j int, a string, b string) int {
 		return i
 	}
 
-	if a[i-1] == b[j-1] {
-		return editDist(i-1, j-1, a, b)
+	if dp[i][j] != -1 {
+		return dp[i][j]
 	}
 
-	insertDist := 1 + editDist(i, j-1, a, b)
-	deleteDist := 1 + editDist(i-1, j, a, b)
-	replaceDist := 1 + editDist(i-1, j-1, a, b)
+	if a[i-1] == b[j-1] {
+		return editDist(i-1, j-1, a, b, dp)
+	}
 
-	return min(insertDist, deleteDist, replaceDist)
+	insertDist := 1 + editDist(i, j-1, a, b, dp)
+	deleteDist := 1 + editDist(i-1, j, a, b, dp)
+	replaceDist := 1 + editDist(i-1, j-1, a, b, dp)
+
+	dp[i][j] = min(insertDist, deleteDist, replaceDist)
+	return dp[i][j]
 }
 
 func getWordDictonary() map[string]int {
