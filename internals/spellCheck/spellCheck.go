@@ -1,30 +1,30 @@
 package spellcheck
 
 import (
-	"encoding/json"
-	"fmt"
-	"os"
+	"sort"
+	"sync"
 )
 
-func GetSimilarWords(word string) []string {
-	wordDictonary := getWordDictonary()
+type Word struct {
+	word     string
+	editDist int
+}
 
-	_, ok := wordDictonary[word]
+func GetSimilarWords(word string, words []map[string]int, preferredDist int) []Word {
+	similarWords := []Word{}
 
-	if ok {
-		return []string{word}
+	var wg sync.WaitGroup
+
+	for idx := range words {
+		wg.Add(1)
+		go findSimilarWords(word, preferredDist, &similarWords, words[idx], &wg)
 	}
 
-	similarWords := []string{}
+	wg.Wait()
 
-	for dicWord := range wordDictonary {
-		editDist := getEditDistance(word, dicWord)
-
-		if editDist >= 0 && editDist <= 2 {
-			similarWords = append(similarWords, dicWord)
-			fmt.Println(dicWord)
-		}
-	}
+	sort.Slice(similarWords, func(i, j int) bool {
+		return similarWords[i].editDist > similarWords[j].editDist
+	})
 
 	return similarWords
 }
@@ -74,16 +74,14 @@ func editDist(i int, j int, a string, b string, dp [][]int) int {
 	return dp[i][j]
 }
 
-func getWordDictonary() map[string]int {
-	b, err := os.ReadFile("words_dictionary.json")
-	if err != nil {
-		fmt.Print(err)
+func findSimilarWords(word string, preferredDist int, similarWords *[]Word, wordDictonary map[string]int, wg *sync.WaitGroup) {
+	for dicWord := range wordDictonary {
+		editDist := getEditDistance(word, dicWord)
+
+		if editDist >= 0 && editDist <= preferredDist {
+			*similarWords = append(*similarWords, Word{editDist: editDist, word: dicWord})
+		}
 	}
 
-	jsonStr := string(b)
-
-	result := make(map[string]int)
-
-	json.Unmarshal([]byte(jsonStr), &result)
-	return result
+	wg.Done()
 }
